@@ -2,6 +2,7 @@ use clap::{Arg, ArgAction, Command};
 use flexi_logger::{detailed_format, Duplicate, FileSpec, Logger};
 use log::{error, warn};
 use owo_colors::colored::*;
+use sysinfo::{CpuRefreshKind, RefreshKind, System, SystemExt};
 
 use std::{
     fs, io,
@@ -96,6 +97,9 @@ fn main() {
                     process::exit(1);
                 }
             }
+            Some(("sys", _)) => {
+                get_sys();
+            }
             _ => {
                 unreachable!();
             }
@@ -173,6 +177,52 @@ fn seclog() -> Command {
                 .long_flag("log")
                 .about("Show content of the log file"),
         )
+        .subcommand(
+            Command::new("sys")
+                .short_flag('s')
+                .long_flag("sys")
+                .about("Show system information")
+        )
+}
+
+fn get_sys() {
+    let mut sys = System::new_all();
+
+    // First we update all information of our `System` struct.
+    sys.refresh_specifics(
+        RefreshKind::new()
+            .with_cpu(CpuRefreshKind::everything())
+            .with_users_list(),
+    );
+
+    // Display system information:
+    println!(
+        "{}             {}",
+        "System name:".blue(),
+        sys.name().unwrap().purple().bold()
+    );
+    println!(
+        "{}   {}",
+        "System kernel version:".blue(),
+        sys.kernel_version().unwrap().purple().bold()
+    );
+    println!(
+        "{}       {}",
+        "System OS version:".blue(),
+        sys.os_version().unwrap().purple().bold()
+    );
+    println!(
+        "{}        {}",
+        "System host name:".blue(),
+        sys.host_name().unwrap().purple().bold()
+    );
+
+    // Number of CPUs:
+    println!(
+        "{}          {}",
+        "Number of CPUs:".blue(),
+        sys.cpus().len().to_string().purple().bold()
+    );
 }
 
 fn check_create_config_dir() -> io::Result<PathBuf> {
